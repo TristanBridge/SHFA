@@ -173,11 +173,9 @@ this.map.on('moveend', this.filterAndDisplayCoordinates);
   height: 100%;
   padding:0px 0px 0px 0px;
   border-radius:10px;
- overflow:hidden!important;
-box-shadow: 0px 5px 45px rgba(0, 0, 0, 0.5)!important;
-filter:contrast(130%) grayscale(80%) brightness(0.9);
-filter:
-
+  overflow:hidden!important;
+  box-shadow: 0px 5px 45px rgba(0, 0, 0, 0.5)!important;
+  filter:contrast(130%) grayscale(80%) brightness(0.9);
 }
 
 
