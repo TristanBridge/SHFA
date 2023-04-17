@@ -1,9 +1,13 @@
 <template>
-  <div id="map">
+
+ <div id="map">
     <!-- <li v-for="coordinate in coordinates" :key="coordinate">
       {{ coordinate }}
     </li> -->
+
   </div>
+
+
 </template>
 
 <script>
@@ -82,10 +86,11 @@ export default {
       })
     ],
     view: new View({
-      center: fromLonLat([11.9746, 57.7089]),
-      zoom: 12
+      center: fromLonLat([11.35, 58.73]),
+      zoom: 13
     })
   });
+
 
       this.iconStyle = new Style({
         image: new Icon({
@@ -163,7 +168,17 @@ this.map.on('moveend', this.filterAndDisplayCoordinates);
 
 <style scoped>
 #map {
+  z-index: 40; /* Fixes border-radius in Safari. */
   width: 100%;
   height: 100%;
+  padding:0px 0px 0px 0px;
+  border-radius:10px;
+ overflow:hidden!important;
+box-shadow: 0px 5px 45px rgba(0, 0, 0, 0.5)!important;
+filter:contrast(130%) grayscale(80%) brightness(0.9);
+filter:
+
 }
+
+
 </style>

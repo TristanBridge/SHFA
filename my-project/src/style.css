@@ -20,27 +20,32 @@ body
   color: rgba(255, 255, 255, 0.87); */
 }
 
-#app > div > div > div.split-container > div > div:nth-child(2)
+
+
+div.split-container > div > div:nth-child(2)
 {
   background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
   cursor: col-resize;
-  background-color: #8e8e8e;
+  background-color: rgba(165,165,165, 0);
   background-repeat: no-repeat;
   background-position: 50%;
 } 
 
-#app > div > div > div.split-container > div > div:nth-child(4)
+div.split-container > div > div:nth-child(4)
 {
   background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
   cursor: col-resize;
-  background-color: #8e8e8e;
+  background-color: rgba(165,165,165, 0);
   background-repeat: no-repeat;
   background-position: 50%;
 }
 
 /*Border Radius for Map*/
-#map > div > div.ol-unselectable.ol-layers > div > canvas
+#map > div >  div.ol-unselectable.ol-layers > div > canvas
 {
-  border-radius: 20px;
+  border-radius:20px;
+  z-index: 40; /* Fixes border-radius in Safari. */
+ box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.8)!important;
+
 }
 
