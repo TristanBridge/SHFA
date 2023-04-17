@@ -10,14 +10,7 @@
   <div  id="split-0" class="flex-grow flex flex-col justify-between"
        :class="{ 'w-1/3': showThreePanels, 'w-1/2': !showThreePanels }">
        
-       <div id="search-interface" class="">
-       <h2 class="input-unpad mb-0">
-      <input type="search" id="search" name="search" placeholder="Search Archive..." class="">
-       </h2>
-      </div>
-      <div id="filter-interface"> 
-        <div class="filter-text"> Filter suggestions: </div><div class="tag-example">boat</div><div class="tag-example">animal</div> <div class="tag-example">warrior</div> <div class="tag-example">weapon</div>
-      </div>
+      <Search />
 
       <Map :coordinates="results" @raa-id-selected="selectedRaaId = $event"></Map>
   
@@ -74,10 +67,11 @@ import Map from '../components/Map.vue'
 import { defineComponent } from 'vue'
 import Split from 'split.js';
 import MasonryGrid from '../components/MasonryGrid.vue'
+import Search from "../components/Search.vue"
 
 export default defineComponent({
   components: {
-    Map, MasonryGrid
+    Map, MasonryGrid, Search
   },
   data() {
     return {

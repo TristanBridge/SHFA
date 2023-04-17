@@ -111,7 +111,5 @@ border-radius:0px;
   font-size: 18px;
   margin-left: 30px;
 }
-
-
 </style>
 
