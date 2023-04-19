@@ -12,8 +12,14 @@
        
       <Search />
 
-      <Map :coordinates="results" @raa-id-selected="selectedRaaId = $event"></Map>
-  
+      <Map
+      :coordinates="results"
+      :bbox="bbox"
+      @raa-id-selected="selectedRaaId = $event"
+      @update-bbox="bbox = $event"
+      ></Map>
+
+
       <div style="display:flex;  align-items: center; justify-content: center;">
       <div class="ui-map-info ui-overlay">
         Filter the archive by adjusting the view or select a site
@@ -80,6 +86,7 @@ export default defineComponent({
       showDropdown: false,
       showThreePanels: false,
       selectedRaaId: null,
+      bbox: [],
     }
   },
   mounted() {
@@ -102,7 +109,7 @@ export default defineComponent({
       this.showDropdown = !this.showDropdown;
     },
   },
-  created() {
+/*   created() {
       async function fetchAllData(url, limit = 500, offset = 0, results = []) {
       const response = await fetch(`${url}?format=json&limit=${limit}&offset=${offset}`);
       const data = await response.json();
@@ -126,7 +133,8 @@ export default defineComponent({
         console.error('Error fetching data:', error);
       });
 
-      },
+      }, */
+
 })
 </script>
 

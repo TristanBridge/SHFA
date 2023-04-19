@@ -1,11 +1,7 @@
 <template>
 
  <div id="map">
-    <!-- <li v-for="coordinate in coordinates" :key="coordinate">
-      {{ coordinate }}
-    </li> -->
-
-  </div>
+</div>
 
 
 </template>
@@ -25,7 +21,7 @@ import Style from 'ol/style/Style';
 import {toLonLat} from 'ol/proj';
 import { Cluster } from 'ol/source';
 import { Circle as CircleStyle, Fill, Stroke, Text } from 'ol/style';
-
+import { debounce } from 'lodash';
 
 export default {
   name: 'MapComponent',
@@ -33,7 +29,11 @@ export default {
     coordinates: {
       type: Array,
       default: () => [],
-    }
+    },
+    bbox: {
+      type: Array,
+      default: () => [],
+    },
   },
   data()
   {
@@ -41,45 +41,86 @@ export default {
     map: null,
     vectorLayer: null,
     iconStyle: null,
-    mappedCoordinates: [],
     clickedRaaId: null,
+    results: [], 
     }
   },
-  mounted() {
-    this.initMap();
-    this.filterAndDisplayCoordinates();
-  },
-  watch: {
-    coordinates: {
-      deep: true,
-      handler() {
-        this.coordinatesMapped = this.coordinates.map(result => result.coordinates.coordinates);
-      },
+mounted() {
+  try {
+    this.initMap(); // Initialize the map on component mount
+    this.$nextTick(() => {
+      this.updateCoordinates(); // Update the map markers on component mount
+    });
+  } catch (error) {
+    console.error('Error in mounted hook:', error);
+  }
+},
+created() {
+  this.debouncedFetchDataByBbox = debounce(this.fetchDataByBbox, 1000);
+},
+watch: {
+  bbox: {
+    deep: true,
+    handler: function() {
+      this.debouncedFetchDataByBbox(); // Fetch data by bounding box
     },
-    coordinatesMapped: {
-      deep: true,
-      handler() {
-        this.updateCoordinates();
-      },
+  },
+  results: {
+    deep: true,
+    handler() {
+      this.updateCoordinates(); // Update the map markers when results change
     },
   },
+},
   methods: {
-    filterAndDisplayCoordinates() {
+    updateBbox() { // Get the bounding box coordinates of the current view and emit them to the parent component
       const extent = this.map.getView().calculateExtent(this.map.getSize());
-      const filteredCoordinates = this.coordinatesMapped.filter(coord => {
-        if (coord) {
-          const point = new Point(fromLonLat([coord[0], coord[1]]));
-          return point.intersectsExtent(extent);
-        }
-        return false;
-      });
-      this.coordinatesMapped = filteredCoordinates.map(result => {
-        if (result && result.coordinates) {
-          return result.coordinates.coordinates;
-        }
-      }).filter(Boolean);
+      const bottomLeft = toLonLat([extent[0], extent[1]]);
+      const topRight = toLonLat([extent[2], extent[3]]);
+      const newBbox = [bottomLeft[0], bottomLeft[1], topRight[0], topRight[1]];
+      this.$emit('update-bbox', newBbox);
     },
 
+    async fetchDataByBbox() {
+      if (this.bbox.length === 4) {  // Construct the API URL with the given bounding box coordinates
+        const [minX, minY, maxX, maxY] = this.bbox;
+        let url = `https://diana.dh.gu.se/api/shfa/geojson/site/?in_bbox=${minX},${minY},${maxX},${maxY}&limit=1000`;
+        let allFeatures = [];
+
+        console.log('URL:', url);
+        const fetchResults = async (url) => {
+          try {
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data && data.features) {
+              console.log('API response:', data);
+              allFeatures.push(...data.features);
+
+            if (data.next) { //if there is a "next" URL, recursively fetch the next set of data
+              let fixedNextUrl = data.next.replace('http://', 'https://');
+              fixedNextUrl = decodeURIComponent(fixedNextUrl);
+              console.log('Next URL:', fixedNextUrl);
+              await fetchResults(fixedNextUrl);
+            }
+
+            } else {
+              console.error('Unexpected API response:', data);
+            }
+          } catch (error) {
+            console.error('Error fetching data:', error);
+          }
+        };
+
+        await fetchResults(url);
+
+        // Map the retrieved features to a new array of objects with coordinates and raa_id properties
+        this.results = allFeatures.map((feature) => ({
+          coordinates: feature.geometry.coordinates,
+          raa_id: feature.properties.raa_id,
+        }));
+      }
+    },
    initMap() {
     this.map = new Map({
     target: 'map',
@@ -89,11 +130,11 @@ export default {
       })
     ],
     view: new View({
-      center: fromLonLat([11.35, 58.73]),
-      zoom: 13
+      center: fromLonLat([11.35, 58.73]), //Default center of the map
+      zoom: 13 // Default zoom level of the map
     })
   });
-
+      // Initialize the map marker style
       this.iconStyle = new Style({
         image: new Icon({
           src: '/interface/assets/marker-gold.svg',
@@ -104,47 +145,54 @@ export default {
         })
       });
 
-      //creates the new layer for the pins
-      const vectorSource = new VectorSource({
-        features: this.coordinates.map(coord => new Feature({
-          geometry: new Point(fromLonLat([coord[0], coord[1]])) 
-        }))
-      });
+  // Check if coordinates are defined before creating the features
+  const features = this.results.length ? this.results.map(result => {
+    const coord = result.coordinates;
+    return new Feature({
+      geometry: new Point(fromLonLat([coord[0], coord[1]]))
+    });
+  }) : [];
 
-      this.vectorLayer = new VectorLayer({
-        source: vectorSource
-      });
+  // Creates the new layer for the pins
+  const vectorSource = new VectorSource({
+    features: features
+  });
 
-     this.map.addLayer(this.vectorLayer);
+  this.vectorLayer = new VectorLayer({
+    source: vectorSource
+  });
+
+  this.map.addLayer(this.vectorLayer);
 
     // Add 'click' event listener
-    this.map.on('click', (event) => {
+      this.map.on('click', (event) => {
       this.map.forEachFeatureAtPixel(event.pixel, (feature) => {
-        // Check if the feature is a cluster
-        if (feature.get('features')) {
-          const featuresInCluster = feature.get('features');
-          // Iterate over the features inside the cluster
-          for (const f of featuresInCluster) {
-            const coordinates = f.getGeometry().getCoordinates();
-            const lonLat = toLonLat(coordinates);
-            const raa_id = f.get('raa_id');
-            console.log('Clicked coordinates:', lonLat.reverse());
-            console.log('Clicked raa_id:', raa_id);
-            this.clickedRaaId = raa_id;
-            this.$emit('raa-id-selected', raa_id);
-          }
-        }
-      });
+      const featuresInCluster = feature.get('features');
+      if (featuresInCluster.length === 1) {
+        const raa_id = featuresInCluster[0].get('raa_id');
+        console.log('Clicked raa_id:', raa_id);
+        this.clickedRaaId = raa_id;
+        this.$emit('raa-id-selected', raa_id);
+      } else {
+        const coordinates = feature.getGeometry().getCoordinates();
+        this.map.getView().setCenter(coordinates);
+        this.map.getView().setZoom(this.map.getView().getZoom() + 1);
+      }
     });
+  });
 
-  this.map.on('moveend', this.filterAndDisplayCoordinates);
-
+  // Add 'moveend' event listener to the map to update the bounding box
+  this.map.on('moveend', () => {
+    this.updateBbox();
+  });
 },
 
 updateCoordinates() {
+  console.log('Updating coordinates:', this.results);
+
   const pointSource = new VectorSource({
-    features: this.coordinates.map(result => {
-      const coord = result.coordinates.coordinates;
+    features: this.results.map(result => { 
+      const coord = result.coordinates;
       const feature = new Feature({
         geometry: new Point(fromLonLat([coord[0], coord[1]]))
       });
@@ -199,16 +247,6 @@ createClusterStyle(feature) {
 },
 
   },
-  computed: {
-    coordinatesMapped: {
-      get() {
-        return this.coordinates.map(result => result.coordinates.coordinates);
-      },
-      set(value) {
-        this.mappedCoordinates = value;
-      },
-    },
-  }
 }
 </script>
 
