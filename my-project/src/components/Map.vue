@@ -84,41 +84,35 @@ watch: {
     async fetchDataByBbox() {
       if (this.bbox.length === 4) {  // Construct the API URL with the given bounding box coordinates
         const [minX, minY, maxX, maxY] = this.bbox;
-        let url = `https://diana.dh.gu.se/api/shfa/geojson/site/?in_bbox=${minX},${minY},${maxX},${maxY}&limit=1000`;
-        let allFeatures = [];
+        let url = `https://diana.dh.gu.se/api/shfa/geojson/site/?in_bbox=${minX},${minY},${maxX},${maxY}&limit=10`;
+        let promises = []
 
-        console.log('URL:', url);
-        const fetchResults = async (url) => {
-          try {
-            const response = await fetch(url);
-            const data = await response.json();
+        let page = 0;
+        while(page < 10) {
+            let res = await fetch(url + '&page=' + page)
+            promises.push(res.json())
+            page += 1
+        }
 
-            if (data && data.features) {
-              console.log('API response:', data);
-              allFeatures.push(...data.features);
+        let data = await Promise.all(promises)
 
-            if (data.next) { //if there is a "next" URL, recursively fetch the next set of data
-              let fixedNextUrl = data.next.replace('http://', 'https://');
-              fixedNextUrl = decodeURIComponent(fixedNextUrl);
-              console.log('Next URL:', fixedNextUrl);
-              await fetchResults(fixedNextUrl);
+        let features = []
+
+        for (const collection in data) {
+          for (const feature in collection) {
+            console.log("FEATURE!!!", feature)
+            if (feature) {
+              features.push({
+                coordinates: feature.geometry.coordinates,
+                raa_id: feature.properties.raa_id,
+              })
             }
-
-            } else {
-              console.error('Unexpected API response:', data);
-            }
-          } catch (error) {
-            console.error('Error fetching data:', error);
           }
-        };
+          features = features.concat(collection.features)
+        }
 
-        await fetchResults(url);
+        this.results = features
 
-        // Map the retrieved features to a new array of objects with coordinates and raa_id properties
-        this.results = allFeatures.map((feature) => ({
-          coordinates: feature.geometry.coordinates,
-          raa_id: feature.properties.raa_id,
-        }));
       }
     },
    initMap() {
