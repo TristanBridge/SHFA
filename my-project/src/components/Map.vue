@@ -21,7 +21,7 @@ import Style from 'ol/style/Style';
 import {toLonLat} from 'ol/proj';
 import { Cluster } from 'ol/source';
 import { Circle as CircleStyle, Fill, Stroke, Text } from 'ol/style';
-import debounce from 'lodash/debounce';
+import { debounce } from 'lodash';
 
 export default {
   name: 'MapComponent',
@@ -35,15 +35,16 @@ export default {
       default: () => [],
     },
   },
-data() {
-  return {
+  data()
+  {
+    return {
     map: null,
     vectorLayer: null,
     iconStyle: null,
     clickedRaaId: null,
-    results: [],
-  };
-},
+    results: [], 
+    }
+  },
 mounted() {
   try {
     this.initMap(); // Initialize the map on component mount
@@ -55,48 +56,51 @@ mounted() {
   }
 },
 created() {
-  this.fetchData();
+  this.debouncedFetchDataByBbox = debounce(this.fetchDataByBbox, 1000);
 },
 watch: {
+  bbox: {
+    deep: true,
+    handler: function() {
+      this.debouncedFetchDataByBbox(); // Fetch data by bounding box
+    },
+  },
   results: {
     deep: true,
     handler() {
       this.updateCoordinates(); // Update the map markers when results change
     },
   },
-  bbox: {
-    deep: true,
-    handler() {
-      this.fetchData(); // Fetch data when the bounding box changes
-    },
-  },
 },
   methods: {
-    updateBbox: debounce(function() {
+    updateBbox() { // Get the bounding box coordinates of the current view and emit them to the parent component
       const extent = this.map.getView().calculateExtent(this.map.getSize());
       const bottomLeft = toLonLat([extent[0], extent[1]]);
       const topRight = toLonLat([extent[2], extent[3]]);
       const newBbox = [bottomLeft[0], bottomLeft[1], topRight[0], topRight[1]];
       this.$emit('update-bbox', newBbox);
-      }, 300),
+    },
 
     async fetchDataByBbox() {
       if (this.bbox.length === 4) {  // Construct the API URL with the given bounding box coordinates
         const [minX, minY, maxX, maxY] = this.bbox;
-        let url = `https://diana.dh.gu.se/api/shfa/geojson/site/?in_bbox=${minX},${minY},${maxX},${maxY}&limit=5`;
+        let url = `https://diana.dh.gu.se/api/shfa/geojson/site/?in_bbox=${minX},${minY},${maxX},${maxY}&limit=1000`;
         let allFeatures = [];
 
+        console.log('URL:', url);
         const fetchResults = async (url) => {
           try {
             const response = await fetch(url);
             const data = await response.json();
 
             if (data && data.features) {
+              console.log('API response:', data);
               allFeatures.push(...data.features);
 
             if (data.next) { //if there is a "next" URL, recursively fetch the next set of data
               let fixedNextUrl = data.next.replace('http://', 'https://');
               fixedNextUrl = decodeURIComponent(fixedNextUrl);
+              console.log('Next URL:', fixedNextUrl);
               await fetchResults(fixedNextUrl);
             }
 
@@ -117,39 +121,6 @@ watch: {
         }));
       }
     },
-
-async fetchData() {
-  // Fetch data from the JSON file
-  let jsonData = [];
-  try {
-    const response = await fetch('/api/reduced_data.json');
-    jsonData = await response.json();
-  } catch (error) {
-    console.error('Error fetching reduced data:', error);
-  }
-
-  // Fetch data from the API using the current bounding box, if available
-  let apiData = [];
-  if (this.bbox.length === 4) {
-    try {
-      console.log('fetching...')
-      const previousResultsLength = this.results.length;
-      await this.fetchDataByBbox();
-      apiData = this.results.slice(previousResultsLength); // Get the new API data from the results
-    } catch (error) {
-      console.error('Error fetching data using bounding box:', error);
-    }
-  }
-
-  // Combine JSON data with API data
-  this.results = [...jsonData, ...apiData];
-
-  // If new data was fetched from the API, update the coordinates
-  if (apiData.length > 0) {
-    this.updateCoordinates();
-  }
-},
-
    initMap() {
     this.map = new Map({
     target: 'map',
@@ -217,18 +188,19 @@ async fetchData() {
 },
 
 updateCoordinates() {
+  console.log('Updating coordinates:', this.results);
+
   const pointSource = new VectorSource({
     features: this.results.map(result => { 
-      const coordinates = result.coordinates;
+      const coord = result.coordinates;
       const feature = new Feature({
-        geometry: new Point(fromLonLat([coordinates[0], coordinates[1]]))
+        geometry: new Point(fromLonLat([coord[0], coord[1]]))
       });
       feature.set('raa_id', result.raa_id); // Add raa_id as a property of the feature
       feature.setStyle(this.iconStyle); // Apply the iconStyle to the feature
       return feature;
     })
   });
-
 
   const clusterSource = new Cluster({
     distance: 40, // Adjust this value to control the clustering distance
