@@ -43,6 +43,7 @@ export default {
     iconStyle: null,
     clickedRaaId: null,
     results: [], 
+    cachedResults: [],
     }
   },
 mounted() {
@@ -56,13 +57,28 @@ mounted() {
   }
 },
 created() {
-  this.debouncedFetchDataByBbox = debounce(this.fetchDataByBbox, 1000);
+  this.debouncedFetchDataByBbox = debounce(this.fetchDataByBbox, 100);
 },
 watch: {
-  bbox: {
+ bbox: {
     deep: true,
-    handler: function() {
-      this.debouncedFetchDataByBbox(); // Fetch data by bounding box
+    handler(newBbox, oldBbox) {
+      if (
+        oldBbox.length !== 4 ||
+        newBbox[0] < oldBbox[0] ||
+        newBbox[1] < oldBbox[1] ||
+        newBbox[2] > oldBbox[2] ||
+        newBbox[3] > oldBbox[3]
+      ) {
+        this.debouncedFetchDataByBbox(); // Fetch data by bounding box
+      } else {
+          console.log('Using cached data');
+        // Update the results array with the data within the current bounding box
+        this.results = this.cachedResults.filter(result => {
+          const [x, y] = result.coordinates;
+          return x >= newBbox[0] && x <= newBbox[2] && y >= newBbox[1] && y <= newBbox[3];
+        });
+      }
     },
   },
   results: {
@@ -81,46 +97,72 @@ watch: {
       this.$emit('update-bbox', newBbox);
     },
 
-    async fetchDataByBbox() {
-      if (this.bbox.length === 4) {  // Construct the API URL with the given bounding box coordinates
-        const [minX, minY, maxX, maxY] = this.bbox;
-        let url = `https://diana.dh.gu.se/api/shfa/geojson/site/?in_bbox=${minX},${minY},${maxX},${maxY}&limit=1000`;
-        let allFeatures = [];
+   async fetchDataByBbox() {
+  if (this.bbox.length === 4) {
+    // Calculate the larger bounding box
+    const padding = 0.2; // Adjust this value to control the amount of padding around the current bounding box
+    const [minX, minY, maxX, maxY] = this.bbox;
+    const paddedBbox = [
+      minX - (maxX - minX) * padding,
+      minY - (maxY - minY) * padding,
+      maxX + (maxX - minX) * padding,
+      maxY + (maxY - minY) * padding,
+    ];
 
-        console.log('URL:', url);
-        const fetchResults = async (url) => {
-          try {
-            const response = await fetch(url);
-            const data = await response.json();
+    // Construct the API URL with the padded bounding box coordinates
+    const url = `https://diana.dh.gu.se/api/shfa/geojson/site/?in_bbox=${paddedBbox[0]},${paddedBbox[1]},${paddedBbox[2]},${paddedBbox[3]}&limit=1000`;
 
-            if (data && data.features) {
-              console.log('API response:', data);
-              allFeatures.push(...data.features);
+    let allFeatures = [];
 
-            if (data.next) { //if there is a "next" URL, recursively fetch the next set of data
-              let fixedNextUrl = data.next.replace('http://', 'https://');
-              fixedNextUrl = decodeURIComponent(fixedNextUrl);
-              console.log('Next URL:', fixedNextUrl);
-              await fetchResults(fixedNextUrl);
-            }
+    const fetchResults = async (url) => {
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
 
-            } else {
-              console.error('Unexpected API response:', data);
-            }
-          } catch (error) {
-            console.error('Error fetching data:', error);
+        if (data && data.features) {
+          allFeatures.push(...data.features);
+
+          if (data.next) { //if there is a "next" URL, recursively fetch the next set of data
+            let fixedNextUrl = data.next.replace('http://', 'https://');
+            fixedNextUrl = decodeURIComponent(fixedNextUrl);
+            await fetchResults(fixedNextUrl);
           }
-        };
 
-        await fetchResults(url);
-
-        // Map the retrieved features to a new array of objects with coordinates and raa_id properties
-        this.results = allFeatures.map((feature) => ({
-          coordinates: feature.geometry.coordinates,
-          raa_id: feature.properties.raa_id,
-        }));
+        } else {
+          console.error('Unexpected API response:', data);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
       }
-    },
+    };
+
+    await fetchResults(url);
+
+    // Save the fetched data in the cachedResults array
+    this.cachedResults.push(...allFeatures.map((feature) => ({
+      coordinates: feature.geometry.coordinates,
+      raa_id: feature.properties.raa_id,
+    })));
+
+    // Deduplicate the cachedResults array
+    const uniqueResults = [];
+    const seenRaaIds = new Set();
+    for (const result of this.cachedResults) {
+      if (!seenRaaIds.has(result.raa_id)) {
+        uniqueResults.push(result);
+        seenRaaIds.add(result.raa_id);
+      }
+    }
+    this.cachedResults = uniqueResults;
+
+    // Update the results array with the data within the current bounding box
+    this.results = this.cachedResults.filter(result => {
+      const [x, y] = result.coordinates;
+      return x >= minX && x <= maxX && y >= minY && y <= maxY;
+    });
+  }
+},
+
    initMap() {
     this.map = new Map({
     target: 'map',
@@ -188,10 +230,8 @@ watch: {
 },
 
 updateCoordinates() {
-  console.log('Updating coordinates:', this.results);
-
   const pointSource = new VectorSource({
-    features: this.results.map(result => { 
+    features: this.cachedResults.map(result => { 
       const coord = result.coordinates;
       const feature = new Feature({
         geometry: new Point(fromLonLat([coord[0], coord[1]]))
