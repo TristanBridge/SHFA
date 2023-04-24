@@ -51,6 +51,7 @@ mounted() {
     this.initMap(); // Initialize the map on component mount
     this.$nextTick(() => {
       this.updateCoordinates(); // Update the map markers on component mount
+      this.fetchAdditionalData(); // Fetch additional data from the provided API endpoint
     });
   } catch (error) {
     console.error('Error in mounted hook:', error);
@@ -88,8 +89,60 @@ watch: {
     },
   },
 },
-  methods: {
-    updateBbox() { // Get the bounding box coordinates of the current view and emit them to the parent component
+methods: {
+
+async fetchAdditionalData(url, pagesToFetch = 15) {
+  if (!url) {
+    url = 'https://diana.dh.gu.se/api/shfa/geojson/site/';
+  }
+  
+  const delay = async (duration) => new Promise((resolve) => setTimeout(resolve, duration));
+
+  let pagesFetched = 0;
+
+  const fetchData = async (url) => {
+    try {
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (data && data.features) {
+        const additionalResults = data.features.map((feature) => ({
+          coordinates: feature.geometry.coordinates,
+          raa_id: feature.properties.raa_id,
+        }));
+
+        // Filter the additionalResults to only include points outside the current bounding box
+        const filteredAdditionalResults = additionalResults.filter(result => {
+          const [x, y] = result.coordinates;
+          return x < this.bbox[0] || x > this.bbox[2] || y < this.bbox[1] || y > this.bbox[3];
+        });
+
+        // Merge the filteredAdditionalResults with the cachedResults
+        this.cachedResults.push(...filteredAdditionalResults);
+
+        // Increment the pagesFetched counter
+        pagesFetched++;
+
+        // If there's a next page, fetch it
+        if (data.next) {
+          const fixedNextUrl = data.next.replace('http://', 'https://');
+          if (pagesFetched % pagesToFetch === 0) { // If pages fetched is a multiple of pagesToFetch, add a delay
+            await delay(3000); // Pause for 3 seconds
+          }
+          await fetchData(fixedNextUrl);
+        }
+      } else {
+        console.error('Unexpected API response:', data);
+      }
+    } catch (error) {
+      console.error('Error fetching additional data:', error);
+    }
+  };
+
+  await fetchData(url);
+},
+
+  updateBbox() { // Get the bounding box coordinates of the current view and emit them to the parent component
       const extent = this.map.getView().calculateExtent(this.map.getSize());
       const bottomLeft = toLonLat([extent[0], extent[1]]);
       const topRight = toLonLat([extent[2], extent[3]]);
@@ -97,7 +150,7 @@ watch: {
       this.$emit('update-bbox', newBbox);
     },
 
-   async fetchDataByBbox() {
+async fetchDataByBbox() {
   if (this.bbox.length === 4) {
     // Calculate the larger bounding box
     const padding = 0.2; // Adjust this value to control the amount of padding around the current bounding box
@@ -158,7 +211,7 @@ watch: {
     // Update the results array with the data within the current bounding box
     this.results = this.cachedResults.filter(result => {
       const [x, y] = result.coordinates;
-      return x >= minX && x <= maxX && y >= minY && y <= maxY;
+        return x >= this.bbox[0] && x <= this.bbox[2] && y >= this.bbox[1] && y <= this.bbox[3];
     });
   }
 },
@@ -224,9 +277,9 @@ watch: {
   });
 
   // Add 'moveend' event listener to the map to update the bounding box
-  this.map.on('moveend', () => {
+  this.map.on('moveend', debounce(() => {
     this.updateBbox();
-  });
+  }, 2000)); // Adjust the delay in milliseconds as needed
 },
 
 updateCoordinates() {
@@ -236,8 +289,8 @@ updateCoordinates() {
       const feature = new Feature({
         geometry: new Point(fromLonLat([coord[0], coord[1]]))
       });
-      feature.set('raa_id', result.raa_id); // Add raa_id as a property of the feature
-      feature.setStyle(this.iconStyle); // Apply the iconStyle to the feature
+      feature.set('raa_id', result.raa_id); 
+      feature.setStyle(this.iconStyle);
       return feature;
     })
   });

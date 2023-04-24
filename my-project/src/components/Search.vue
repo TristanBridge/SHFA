@@ -11,14 +11,15 @@
           >
             {{ keyword.text }}
           </div>
-          <input
-            type="search"
-            id="search"
-            name="search"
-            placeholder="Search Archive..."
-            class=""
-            :value="searchQuery"
-            @input="updateSearchQuery($event.target.value)"
+           <input
+              type="search"
+              id="search"
+              name="search"
+              placeholder="Search Archive..."
+              class=""
+              :value="searchQuery"
+              @input="updateSearchQuery($event.target.value)"
+              @keydown="handleBackspace($event)"
           />
         </div>
       </h2>
@@ -105,14 +106,22 @@ export default {
     updateSearchQuery(value) {
       this.searchQuery = value;
     },
+     handleBackspace(event) {
+      if (event.key === 'Backspace' && this.searchQuery === '') {
+        this.deselectKeyword(this.selectedKeywords[this.selectedKeywords.length - 1]);
+      }
+    },
   },
 };
 </script>
 
 <style scoped>
 #filter-interface {
-  min-height: 100px;
-  padding: 10px 0px 0px 0px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0px;
+  padding: 10px 0px 10px 0px;
   color: white;
   z-index: 1000;
   margin-left: -5px;
@@ -131,6 +140,7 @@ export default {
   background-color: rgb(90, 90, 90);
   padding: 5px 8px; /* Adjust padding for smaller text */
   font-size: 12px; /* Make the text in the keywords smaller */
+  margin-bottom: 5px;
   border-radius: 5px;
   margin-left: 10px;
   cursor: pointer;
@@ -139,8 +149,8 @@ export default {
 .tag-example-search {
   float: left;
   background-color: rgb(90, 90, 90);
-  padding: 10px 8px; /* Adjust padding for smaller text */
-  font-size: 20px; /* Make the text in the keywords smaller */
+  padding: 0.5em 0.4em; 
+  font-size: 1.25em;
   border-radius: 5px;
   margin-left: 10px;
   cursor: pointer;
@@ -168,8 +178,9 @@ export default {
   align-items: center;
   background-color: rgb(45, 45, 45);
   border-radius: 8px;
-  width: 100%; /* Changed from min-width to width */
+  width: 100%;
   box-sizing: border-box;
+  font-size: 1rem; /* Add a base font-size for the input-wrapper */
 }
 
 input[type="search"] {
