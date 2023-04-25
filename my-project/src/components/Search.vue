@@ -21,6 +21,9 @@
               @input="updateSearchQuery($event.target.value)"
               @keydown="handleBackspace($event)"
           />
+          <button class="toggle-map-btn" @click="$emit('toggle-map')">
+            Advanced Search
+          </button>
         </div>
       </h2>
     </div>
@@ -202,8 +205,8 @@ input[type="search"]:focus {
 
 input[type="search"]::-webkit-search-cancel-button {
   -webkit-appearance: none;
-  height: 0.5em;
-  width: 0.5em;
+  height: 0.75em;
+  width: 0.75em;
   border-radius: 50em;
   background: url(../../interface/input-cancel-x.svg) no-repeat 50% 50%;
   background-size: contain;
@@ -227,6 +230,22 @@ h2 {
 
 input:focus {
   outline: none;
+}
+
+.toggle-map-btn {
+  background-color: rgb(90, 90, 90);
+  color: white;
+  border: none;
+  padding: 10px 10px;
+  margin-left: 10px;
+  margin-right: 10px;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.toggle-map-btn:hover {
+  background-color: rgb(170, 70, 70);
 }
 </style>
 

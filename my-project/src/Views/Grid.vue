@@ -10,18 +10,19 @@
   <div  id="split-0" class="flex-grow flex flex-col justify-between"
        :class="{ 'w-1/3': showThreePanels, 'w-1/2': !showThreePanels }">
        
-      <Search />
-
+      <Search @toggle-map="toggleMap" />
       <Map
+      v-if="showMap"
       :coordinates="results"
       :bbox="bbox"
       @raa-id-selected="selectedRaaId = $event"
       @update-bbox="bbox = $event"
-      ></Map>
+    ></Map>
+    <AdvancedSearch v-else/>
 
 
       <div style="display:flex;  align-items: center; justify-content: center;">
-      <div class="ui-map-info ui-overlay">
+      <div class="ui-map-info ui-overlay"  v-if="showMap">
         Filter the archive by adjusting the view or select a site
       </div>
     </div>
@@ -74,67 +75,39 @@ import { defineComponent } from 'vue'
 import Split from 'split.js';
 import MasonryGrid from '../components/MasonryGrid.vue'
 import Search from "../components/Search.vue"
+import AdvancedSearch from "../components/AdvancedSearch.vue";
 
 export default defineComponent({
   components: {
-    Map, MasonryGrid, Search
+    Map, MasonryGrid, Search, AdvancedSearch
   },
   data() {
     return {
       items: [],
       results: [],
-      showDropdown: false,
       showThreePanels: false,
       selectedRaaId: null,
       bbox: [],
+      showMap: true,
     }
   },
   mounted() {
-  
     Split(['#split-0', '#split-1', '#split-2'], {
     minSize: [500, 300],
     dragInterval: 1,
     gutterSize: 10,
     gutterAlign: 'start',
-  }),
-    document.addEventListener('click', this.closeDropdown);
+  })
   },
   methods: {
+    toggleMap() {
+      this.showMap = !this.showMap;
+    },
     toggleThreePanels() 
     {
       this.showThreePanels = !this.showThreePanels;
     },
-    showDropDown()
-    {
-      this.showDropdown = !this.showDropdown;
-    },
   },
-/*   created() {
-      async function fetchAllData(url, limit = 500, offset = 0, results = []) {
-      const response = await fetch(`${url}?format=json&limit=${limit}&offset=${offset}`);
-      const data = await response.json();
-
-      const updatedResults = results.concat(data.results);
-
-      if (data.next) {
-        return fetchAllData(url, limit, offset + limit, updatedResults);
-      } else {
-        return updatedResults;
-      }
-    }
-
-    // Usage
-      fetchAllData('https://diana.dh.gu.se/api/shfa/site/')
-      .then(data => {
-        console.log('Fetched all data:', data);
-        this.results = data; // Set the results data property
-      })
-      .catch(error => {
-        console.error('Error fetching data:', error);
-      });
-
-      }, */
-
 })
 </script>
 
@@ -234,7 +207,6 @@ float:left;
   margin-top:10px;
   padding:10px 15px;
   background-color:rgb(45,45,45);
- 
 }
 
 input[type="search"]::-webkit-search-cancel-button {
@@ -295,16 +267,6 @@ h2 input:not(:placeholder-shown) {
   transform: translateX(0);
 }
 
-.dropdown-svg {
-  transition: transform 0.2s;
-  width: 24px;
-  height: 24px;
-}
-
-.dropdown-svg:hover,
-.dropdown-svg:focus {
-  transform: scale(1.1);
-}
 .ui-overlay {
 z-index: 100;
 position:absolute;
@@ -345,10 +307,6 @@ text-align: center;
 bottom: 50px;
 margin-top: calc(100% - 100px);
 }
-
-
-
-
 </style>
 
 

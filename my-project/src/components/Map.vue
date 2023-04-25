@@ -91,7 +91,7 @@ watch: {
 },
 methods: {
 
-async fetchAdditionalData(url, pagesToFetch = 15) {
+async fetchAdditionalData(url, pagesToFetch = 10) {
   if (!url) {
     url = 'https://diana.dh.gu.se/api/shfa/geojson/site/';
   }
