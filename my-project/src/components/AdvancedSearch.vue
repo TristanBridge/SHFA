@@ -2,6 +2,18 @@
   <div class="search-container">
     <div class="search-grid">
       <div v-for="(query, index) in searchQuery" :key="index" class="search-item">
+        <div class="field-title">
+          {{
+            [
+              'Image Types',
+              'Image Keywords',
+              'Lämning or RAA ID',
+              'Rock Carving Objects',
+              'New Field 1',
+              'New Field 2',
+            ][index]
+          }}
+        </div>
         <div class="input-wrapper">
           <div
             v-for="keyword in selectedKeywords[index]"
@@ -19,7 +31,9 @@
                 'Search image types...',
                 'Search image keywords...',
                 'Search lämning or raa id...',
-                'Search rock carving objects...'
+                'Search rock carving objects...',
+                'Search new field 1...',
+                'Search new field 2...'
             ][index]"
             class=""
             :value="query"
@@ -33,12 +47,15 @@
             :key="result.id"
             class="tag-example"
             @click="selectResult(result, index)"
+            @mouseover="hoverResult(index)"
+            @mouseout="unhoverResult(index)"
           >
             {{ result.text }}
           </div>
         </div>
       </div>
     </div>
+    <button class="search-button" @click="handleSearchButtonClick">Search</button>
   </div>
 </template>
 
@@ -46,10 +63,11 @@
 export default {
   data() {
     return {
-      searchQuery: ['', '', '', ''],
-      searchResults: [[], [], [], []],
-      debouncedSearch: [null, null, null, null],
-      selectedKeywords: [[], [], [], []],
+      searchQuery: ['', '', '', '', '', ''],
+      searchResults: [[], [], [], [], [], []],
+      debouncedSearch: [null, null, null, null, null, null],
+      selectedKeywords: [[], [], [], [], [], []],
+      hoveredResultIndex: -1,
     };
   },
   created() {
@@ -60,15 +78,17 @@ export default {
     });
   },
   computed: {
-  apiUrls() {
-    return [
-      'https://diana.dh.gu.se/api/shfa/keywordtag/',
-      'https://diana.dh.gu.se/api/shfa/keywordtag/',
-      'https://diana.dh.gu.se/api/shfa/keywordtag/',
-      'https://diana.dh.gu.se/api/shfa/keywordtag/',
-    ];
+    apiUrls() {
+      return [
+        'https://diana.dh.gu.se/api/shfa/keywordtag/',
+        'https://diana.dh.gu.se/api/shfa/keywordtag/',
+        'https://diana.dh.gu.se/api/shfa/keywordtag/',
+        'https://diana.dh.gu.se/api/shfa/keywordtag/',
+        'https://diana.dh.gu.se/api/shfa/keywordtag/',
+        'https://diana.dh.gu.se/api/shfa/keywordtag/',
+      ];
+    },
   },
-},
   methods: {
     debounce(fn, delay) {
       let timer;
@@ -80,28 +100,28 @@ export default {
       };
     },
     async searchKeywordTags(query, index) {
-    if (!query) {
+      if (!query) {
         this.searchResults[index] = [];
         return;
-    }
+      }
 
-    const apiUrl = this.apiUrls[index]; // Use the corresponding API URL
+      const apiUrl = this.apiUrls[index]; // Use the corresponding API URL
 
-    try {
+      try {
         const response = await fetch(`${apiUrl}?q=${query}`);
         const data = await response.json();
         this.searchResults[index] = data.results.slice(0, 5);
-    } catch (error) {
+      } catch (error) {
         console.error(error);
-    }
+      }
     },
     selectResult(result, index) {
     this.selectedKeywords[index] = [result]; // Replace the current keyword instead of pushing a new one
     this.searchResults[index] = this.searchResults[index].filter(
         item => item.id !== result.id,
-    );
-    this.searchQuery[index] = '';
-    this.searchResults[index] = [];
+      );
+    this.searchQuery[index] = ''; // Clear the search input value when a tag is selected
+    this.searchResults = this.searchResults.map(() => []); // Close all menus
     },
     deselectKeyword(keyword, index) {
       this.selectedKeywords[index] = this.selectedKeywords[index].filter(
@@ -111,14 +131,26 @@ export default {
     updateSearchQuery(value, index) {
       this.searchQuery[index] = value;
       this.debouncedSearch[index](value, index);
+      this.searchResults = this.searchResults.map((results, i) => (i === index ? results : []));
     },
     handleBackspace(event, index) {
-      if (event.key === 'Backspace' && this.searchQuery[index] === '') {
-        this.deselectKeyword(
-          this.selectedKeywords[index][this.selectedKeywords[index].length - 1],
-          index,
-        );
+    if (event.key === 'Backspace' && this.searchQuery[index] === '') {
+      this.deselectKeyword(
+        this.selectedKeywords[index][this.selectedKeywords[index].length - 1],
+        index,
+      );
       }
+    },
+    hoverResult(index) {
+      this.hoveredResultIndex = index;
+    },
+    unhoverResult(index) {
+      if (this.hoveredResultIndex === index) {
+        this.hoveredResultIndex = -1;
+      }
+    },
+    handleSearchButtonClick() {
+      console.log('Search button clicked');
     },
   },
 };
@@ -126,8 +158,7 @@ export default {
 
 <style scoped>
 .search-container {
-  width: 100%;
-  margin-top: -200px;
+  width: 100%;  
 }
 
 .search-grid {
@@ -152,6 +183,12 @@ export default {
   padding: 10px 15px;
   height: 60px;
   gap: 5px;
+}
+
+.field-title {
+  font-size: 1.2em;
+  margin-bottom: 5px;
+  color: white;
 }
 
 .tag-example-search {
@@ -200,6 +237,28 @@ input[type="search"]:focus {
   font-size: 1.25em;
   cursor: pointer;
   color: black;
+}
+
+.tag-example:hover {
+background-color: rgb(170, 70, 70);
+border-radius: 8px;
+color: white;
+}
+
+.search-button {
+display: block;
+margin-top: 20px;
+font-size: 1rem;
+padding: 10px 20px;
+background-color: rgb(90, 90, 90);
+color: white;
+border: none;
+border-radius: 5px;
+cursor: pointer;
+}
+
+.search-button:hover {
+background-color: rgb(70, 70, 70);
 }
 
 input[type="search"]::-webkit-search-cancel-button {
