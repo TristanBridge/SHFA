@@ -5,12 +5,12 @@
         <div class="field-title">
           {{
             [
-              'Image Types',
-              'Image Keywords',
-              'Lämning or RAA ID',
-              'Rock Carving Objects',
-              'New Field 1',
-              'New Field 2',
+              'Institution',
+              'Keywords',
+              'Site',
+              'Image Type',
+              'RAÄ-Number',
+              'Datings',
             ][index]
           }}
         </div>
@@ -28,12 +28,12 @@
             :id="'search' + index"
             :name="'search' + index"
             :placeholder="selectedKeywords[index].length ? '' : [
-                'Search image types...',
+                'Search institutions...',
                 'Search image keywords...',
-                'Search lämning or raa id...',
-                'Search rock carving objects...',
-                'Search new field 1...',
-                'Search new field 2...'
+                'Search sites...',
+                'Search image types...',
+                'Search raä number...',
+                'Search datings...'
             ][index]"
             class=""
             :value="query"
@@ -258,7 +258,7 @@ cursor: pointer;
 }
 
 .search-button:hover {
-background-color: rgb(70, 70, 70);
+background-color: rgb(170, 70, 70);
 }
 
 input[type="search"]::-webkit-search-cancel-button {

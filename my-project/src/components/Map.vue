@@ -108,6 +108,7 @@ async fetchAdditionalData(url, pagesToFetch = 10) {
       if (data && data.features) {
         const additionalResults = data.features.map((feature) => ({
           coordinates: feature.geometry.coordinates,
+          id: feature.id,
           raa_id: feature.properties.raa_id,
         }));
 
@@ -194,6 +195,7 @@ async fetchDataByBbox() {
     // Save the fetched data in the cachedResults array
     this.cachedResults.push(...allFeatures.map((feature) => ({
       coordinates: feature.geometry.coordinates,
+      id: feature.id,
       raa_id: feature.properties.raa_id,
     })));
 
@@ -265,9 +267,10 @@ async fetchDataByBbox() {
       const featuresInCluster = feature.get('features');
       if (featuresInCluster.length === 1) {
         const raa_id = featuresInCluster[0].get('raa_id');
-        console.log('Clicked raa_id:', raa_id);
-        this.clickedRaaId = raa_id;
-        this.$emit('raa-id-selected', raa_id);
+        const id = featuresInCluster[0].get('id');
+        console.log('Clicked id:', id, 'Clicked raa_id:', raa_id);
+        this.clickedId = id;
+        this.$emit('id-selected', id);
       } else {
         const coordinates = feature.getGeometry().getCoordinates();
         this.map.getView().setCenter(coordinates);
@@ -290,6 +293,7 @@ updateCoordinates() {
         geometry: new Point(fromLonLat([coord[0], coord[1]]))
       });
       feature.set('raa_id', result.raa_id); 
+      feature.set('id', result.id)
       feature.setStyle(this.iconStyle);
       return feature;
     })

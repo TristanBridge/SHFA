@@ -15,7 +15,7 @@
       v-if="showMap"
       :coordinates="results"
       :bbox="bbox"
-      @raa-id-selected="selectedRaaId = $event"
+      @id-selected="selectedId = $event"
       @update-bbox="bbox = $event"
     ></Map>
     <AdvancedSearch v-else/>
@@ -35,7 +35,7 @@
   <div class="">
   <div class="">
   
-    <MasonryGrid :raa-id="selectedRaaId"></MasonryGrid>
+    <MasonryGrid :siteId="selectedId"></MasonryGrid>
 
     <div style="display:flex;  align-items: center; justify-content: center;">
     <div class="ui-mode ui-overlay">
@@ -94,7 +94,7 @@ export default defineComponent({
       items: [],
       results: [],
       showThreePanels: false,
-      selectedRaaId: null,
+      selectedId: null,
       bbox: [],
       showMap: true,
     }
