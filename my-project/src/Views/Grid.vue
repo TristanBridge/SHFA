@@ -81,6 +81,14 @@ export default defineComponent({
   components: {
     Map, MasonryGrid, Search, AdvancedSearch
   },
+  watch: {
+  showThreePanels(newValue) {
+    const gutter = document.querySelector('.gutter:not(.gutter-2)') as HTMLElement;
+    if (gutter) {
+      gutter.style.display = newValue ? 'block' : 'none';
+    }
+  },
+  },
   data() {
     return {
       items: [],
@@ -92,13 +100,24 @@ export default defineComponent({
     }
   },
   mounted() {
-    Split(['#split-0', '#split-1', '#split-2'], {
+  const vm = this;
+  Split(['#split-0', '#split-1', '#split-2'], {
     minSize: [500, 300],
     dragInterval: 1,
     gutterSize: 10,
     gutterAlign: 'start',
-  })
-  },
+    gutter: function (index, direction) {
+      const gutter = document.createElement('div');
+      gutter.className = 'gutter';
+      if (index === 1) {
+        gutter.classList.add('gutter-2');
+      } else {
+        gutter.style.display = vm.showThreePanels ? 'block' : 'none';
+      }
+      return gutter;
+    },
+  });
+},
   methods: {
     toggleMap() {
       this.showMap = !this.showMap;
@@ -306,6 +325,16 @@ padding: 2px 15px 6px 15px;
 text-align: center;
 bottom: 50px;
 margin-top: calc(100% - 100px);
+}
+
+.gutter {
+  background-color: #999;
+  cursor: ew-resize;
+}
+
+.gutter-2 {
+  background-color: #999;
+  cursor: ew-resize;
 }
 </style>
 
