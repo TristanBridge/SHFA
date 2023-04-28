@@ -1,11 +1,11 @@
 <template>
-  <MasonryWall :items="items" :ssr-columns="1" :column-width="210" :gap="2" :key="siteId">
+  <MasonryWall :items="items" :ssr-columns="1" :column-width="600" :gap="2" :key="siteId">
     <template #default="{ item, index }">
       <div class="grid-image card flex items-center justify-center bg-slate-50 text-black">
         <img :src="item" :alt="`Image ${index}`" />
         <div class="grid-item-info">
           <div class="grid-item-info-meta">
-            <h1>{{siteId}}</h1>
+            <h1>{{siteRaaId}}</h1>
           </div>
         </div>
       </div>
@@ -22,6 +22,11 @@ export default {
   },
   props: {
     siteId: {
+      type: Number,
+      required: false,
+      default: null,
+    },
+    siteRaaId: {
       type: String,
       required: false,
       default: null,
@@ -30,6 +35,11 @@ export default {
   data() {
     return {
       items: [],
+    }
+  },
+  computed: {
+    itemsLength() {
+      return this.items.length;
     }
   },
   mounted() {
@@ -43,6 +53,7 @@ export default {
           .then(data => {
             // Update the items array with the image URLs
             this.items = data.results.map(image => image.file);
+            this.$emit('items-updated', this.itemsLength);
           })
           .catch(error => {
             console.error('Error fetching images:', error);
@@ -60,7 +71,7 @@ export default {
 
 <style scoped>
 .card{
-border-radius:0px;
+  border-radius:0px;
   overflow:hidden;
 }
 

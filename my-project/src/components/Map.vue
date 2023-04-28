@@ -164,7 +164,7 @@ async fetchDataByBbox() {
     ];
 
     // Construct the API URL with the padded bounding box coordinates
-    const url = `https://diana.dh.gu.se/api/shfa/geojson/site/?in_bbox=${paddedBbox[0]},${paddedBbox[1]},${paddedBbox[2]},${paddedBbox[3]}&limit=1000`;
+    const url = `https://diana.dh.gu.se/api/shfa/geojson/site/?in_bbox=${paddedBbox[0]},${paddedBbox[1]},${paddedBbox[2]},${paddedBbox[3]}&limit=100`;
 
     let allFeatures = [];
 
@@ -270,7 +270,9 @@ async fetchDataByBbox() {
         const id = featuresInCluster[0].get('id');
         console.log('Clicked id:', id, 'Clicked raa_id:', raa_id);
         this.clickedId = id;
+        this.clickedRaaId = raa_id;
         this.$emit('id-selected', id);
+        this.$emit('raaId-selected', raa_id);
       } else {
         const coordinates = feature.getGeometry().getCoordinates();
         this.map.getView().setCenter(coordinates);
@@ -300,7 +302,7 @@ updateCoordinates() {
   });
 
   const clusterSource = new Cluster({
-    distance: 40, // Adjust this value to control the clustering distance
+    distance: 100, // Adjust this value to control the clustering distance
     source: pointSource,
   });
 

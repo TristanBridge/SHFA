@@ -12,14 +12,14 @@
        
       <Search @toggle-map="toggleMap" />
       <Map
-      v-if="showMap"
-      :coordinates="results"
-      :bbox="bbox"
-      @id-selected="selectedId = $event"
-      @update-bbox="bbox = $event"
-    ></Map>
-    <AdvancedSearch v-else/>
-
+        v-show="showMap"
+        :coordinates="results"
+        :bbox="bbox"
+        @id-selected="selectedId = $event"
+        @raaId-selected="selectedRaaId = $event"
+        @update-bbox="bbox = $event"
+      ></Map>
+      <AdvancedSearch v-show="!showMap"/>
 
       <div style="display:flex;  align-items: center; justify-content: center;">
       <div class="ui-map-info ui-overlay"  v-if="showMap">
@@ -35,7 +35,11 @@
   <div class="">
   <div class="">
   
-    <MasonryGrid :siteId="selectedId"></MasonryGrid>
+    <MasonryGrid 
+      :siteId="selectedId" 
+      :siteRaaId="selectedRaaId"
+      @items-updated="onItemsUpdated">
+    </MasonryGrid>
 
     <div style="display:flex;  align-items: center; justify-content: center;">
     <div class="ui-mode ui-overlay">
@@ -43,7 +47,7 @@
         <div class="item">Data</div>
       </div>
       <div class="ui-numbers ui-overlay">
-        xxx objects
+        {{ itemsCount }} objects
       </div>
     </div>
   </div>
@@ -95,8 +99,10 @@ export default defineComponent({
       results: [],
       showThreePanels: false,
       selectedId: null,
+      selectedRaaId: null,
       bbox: [],
       showMap: true,
+      itemsCount: 0,
     }
   },
   mounted() {
@@ -126,6 +132,9 @@ export default defineComponent({
     {
       this.showThreePanels = !this.showThreePanels;
     },
+    onItemsUpdated(itemsLength) {
+      this.itemsCount = itemsLength;
+    }
   },
 })
 </script>
